@@ -1,0 +1,1333 @@
+<?php 
+/**
+ * IELTS Partners
+ * @module : IELTS Partners
+ * @author : Glimsol 
+ * @date : 10-14-2014 
+ */
+
+function ielts_partners_menu(){
+	$items = array();
+	$items['admin/config/ielts'] = array(
+		'title' => 'Partners',
+        'position' => 'right', //Wether it is on the right or the left of the config page
+        'weight' => -15,
+        'page callback' => 'system_admin_menu_block_page', //DONT CHANGE THIS!
+        'access arguments' => array('administer site configuration'), // Permission needed to view this area
+        'file' => 'system.admin.inc', //DONT CHANGE THIS!
+        'file path' => drupal_get_path('module', 'system'), //DONT CHANGE THIS!
+        );
+	$items['admin/config/ielts/configuration'] = array(
+		'title' => 'Configuration',
+		'description' => 'Configuration',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('ielts_partners_configuration'),
+		'access callback' => 'user_access',
+		'access arguments' => array('administer users'),
+        'type' => MENU_NORMAL_ITEM, //menu type.
+        );
+	$items['admin/config/ielts/import-partners'] = array(
+		'title' => 'Import Partners',
+		'description' => 'Import Partners via CSV',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('ielts_partners_import'),
+		'access callback' => 'user_access',
+		'access arguments' => array('administer users'),
+        'type' => MENU_NORMAL_ITEM, //menu type.
+        );
+	$items['admin/config/ielts/clear-partners'] = array(
+		'title' => 'Clear Partners',
+		'description' => 'Delete All Partners',
+		'page callback' => 'ielts_partners_clear',
+		'access callback' => 'user_access',
+		'access arguments' => array('administer users'),
+        'type' => MENU_NORMAL_ITEM, //menu type.
+        );
+	$items['json/partners'] = array(
+		'title' => 'Partners Json File',
+		'page callback' => 'ielts_partners_json',
+		'access callback' => TRUE,
+		);	
+	$items['ielts'] = array(
+		'title' => 'Who Accepts IELTS',
+		'page callback' => 'ielts_partners_search_page',
+		'access callback' => TRUE,
+		);
+	$items['ielts-results'] = array(
+		'title' => 'Who Accepts IELTS',
+		'page callback' => 'ielts_partners_search_result_page',
+		'access callback' => TRUE,
+		);
+	/*$items['ielts-results/%'] = array(
+		'title' => 'Who Accepts IELTS inner page',
+		'page callback' => 'ielts_partners_search_result_inner_page',
+		'page arguments' => array(1),
+		'access callback' => TRUE,
+		);*/
+		$items['ielts-results/%'] = array(
+			'title' => 'Partners Country Json File',
+			'page callback' => 'ielts_partners_country_json',
+			'page arguments' => array(1),
+			'access callback' => TRUE,	
+			);
+		return $items;
+
+	}
+
+
+	function ielts_partners_block_info() {
+		$blocks['ielts_partners_search_block'] = array(
+			'info' => t('Partners Search'), 
+			'cache' => DRUPAL_NO_CACHE,
+			);
+		return $blocks;
+	}
+
+	function ielts_partners_block_view($delta = '') {
+		$block = array();
+		switch ($delta) {
+			case 'ielts_partners_search_block':
+			$output = '';
+			$output .= _ielts_partners_search_block(); 
+			$block['content'] = $output;
+			break;
+		}
+		return $block;
+	}
+
+	function _ielts_partners_search_block(){
+		global $base_url;
+		$output = '';
+		$output .= '<div class="partner-search-block-wrapper">';
+		$output .= '<form action="'.$base_url.'/ielts-results'.'" method="get" id="ielts-partner-search" accept-charset="UTF-8">';
+		$output .= '<div class="views-exposed-widgets clearfix">';
+		$output .= '<div id="edit-combine-wrapper" class="views-exposed-widget views-widget-filter-combine">';
+		$output .= '<label for="edit-combine">Search by keyword</label>';
+		$output .= '<div class="views-widget">';
+		$output .= '<div class="form-item form-type-textfield form-item-combine">';
+		$output .= '<input class="ctools-auto-submit-exclude form-text" type="text" id="edit-combine" name="combine" value="" size="30" maxlength="128">';
+		$output .= '</div>';
+		$output .= '</div>';
+		$output .= '</div>';
+		$output .= '<div id="edit-field-organization-type-tid-wrapper" class="views-exposed-widget views-widget-filter-field_organization_type_tid">';
+		$output .= '<label for="edit-field-organization-type-tid">Organisation Type</label>';
+		$output .= '<div class="views-widget">';
+		$output .= '<div class="form-item form-type-select form-item-field-organization-type-tid">';
+		$output .= '<select class="ctools-auto-submit-exclude form-select" id="edit-field-organization-type-tid" name="organization_type">';
+		$output .= '<option value="All" selected="selected">- Any -</option>';
+		$partner_group_query = db_select('partners', 'p');
+		$partner_group_query->fields('p');
+		$partner_group_query->groupBy('organization_type');
+		$partner_group_result = $partner_group_query->execute();
+		while($partner_group_data = $partner_group_result->fetchAssoc()){
+			if($partner_group_data['organization_type']!=''){
+				$output .= '<option value="'.$partner_group_data['organization_type'].'">'.$partner_group_data['organization_type'].'</option>';
+			}
+		}
+								/*$partner_group = taxonomy_vocabulary_machine_name_load('partner_group');
+								$partner_group_list = entity_load('taxonomy_term', FALSE, array('vid' => $partner_group->vid));
+								if(count($partner_group_list)){
+									foreach($partner_group_list as $_partner_group_list){
+										$output .= '<option value="'.$_partner_group_list->tid.'">'.$_partner_group_list->name.'</option>';
+									}
+								}*/
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-country-tid-wrapper" class="views-exposed-widget views-widget-filter-field_partner_country_tid">';
+								$output .= '<label for="edit-field-partner-country-tid">Country</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-select form-item-field-partner-country-tid">';
+								$output .= '<select id="edit-field-partner-country-tid" name="country" class="form-select">';
+								$output .= '<option value="All" selected="selected">- Any -</option>';
+								$country_query = db_select('partners', 'p');
+								$country_query->fields('p');
+								$country_query->groupBy('country');
+								$country_result = $country_query->execute();
+								while($country_data = $country_result->fetchAssoc()){
+									if($country_data['country']!=''){
+										$output .= '<option value="'.$country_data['country'].'">'.$country_data['country'].'</option>';
+									}
+								}
+								/*$partner_country = taxonomy_vocabulary_machine_name_load('partner_country');
+								$partner_country_list = entity_load('taxonomy_term', FALSE, array('vid' => $partner_country->vid));
+								if(count($partner_country_list)){
+									foreach($partner_country_list as $_partner_country_list){
+										$output .= '<option value="'.$_partner_country_list->tid.'">'.$_partner_country_list->name.'</option>';
+									}
+								}*/
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-state-tid-wrapper" class="views-exposed-widget views-widget-filter-field_partner_state_tid">';
+								$output .= '<label for="edit-field-partner-state-tid">State</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-select form-item-field-partner-state-tid">';
+								$output .= '<select id="edit-field-partner-state-tid" name="state" class="form-select disabled" disabled>';
+								$output .= '<option value="All" selected="selected">- Any -</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-city-tid-wrapper" class="views-exposed-widget views-widget-filter-field_partner_city_tid">';
+								$output .= '<label for="edit-field-partner-city-tid">City</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-select form-item-field-partner-city-tid">';
+								$output .= '<select id="edit-field-partner-city-tid" name="city" class="form-select disabled" disabled>';
+								$output .= '<option value="All" selected="selected">- Any -</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-min-bandscore-value-wrapper" class="advance-search-block views-exposed-widget views-widget-filter-field_partner_min_bandscore_value" style="display: none;">';
+								$output .= '<label for="edit-field-partner-min-bandscore-value">Minimum bandscore</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-textfield form-item-field-partner-min-bandscore-value">';
+								$output .= '<input type="text" id="edit-field-partner-min-bandscore-value" name="min_bandscore" value="" size="30" maxlength="128" class="form-text ctools-auto-submit-processed">';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="advance-search-block views-exposed-widget views-widget-sort-by" style="display: none;">';
+								$output .= '<div class="form-item form-type-select form-item-sort-by">';
+								$output .= '<label for="edit-sort-by">Sort results by</label>';
+								$output .= '<select id="edit-sort-by" name="sort_by" class="form-select">';
+								$output .= '<option value="title" selected="selected">Organisation Name</option>';
+								$output .= '<option value="city">City</option>';
+								$output .= '<option value="country">Country</option>';
+								$output .= '<option value="min_bandscore">Minimum bandscore</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="advance-search-block views-exposed-widget views-widget-sort-order" style="display: none;">';
+								$output .= '<div class="form-item form-type-select form-item-sort-order">';
+								$output .= '<label for="edit-sort-order">Order </label>';
+								$output .= '<select id="edit-sort-order" name="sort_order" class="form-select">';
+								$output .= '<option value="ASC" selected="selected">Ascending</option>';
+								$output .= '<option value="DESC">Descending</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="advance-search-block views-exposed-widget views-widget-per-page" style="display: none;">';
+								$output .= '<div class="form-item form-type-select form-item-items-per-page">';
+								$output .= '<label for="edit-items-per-page">Results per page </label>';
+								$output .= '<select id="edit-items-per-page" name="items_per_page" class="form-select">';
+								$output .= '<option value="20" selected="selected">20</option>';
+								$output .= '<option value="30">30</option>';
+								$output .= '<option value="40">40</option>';
+								$output .= '<option value="50">50</option>';
+								$output .= '<option value="60">60</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="views-exposed-widget views-submit-button">';
+								$output .= '<input class="form-submit" type="submit" id="submit-ielts-partner" name="" value="Search">';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</form>';
+								$output .= '</div>';
+								$output .= '<script>
+								jQuery(document).ready(function(){
+			//refreshFormResults();
+									jQuery("#edit-field-partner-country-tid").change(function(e){
+										refreshStateOptions();
+									});
+
+									jQuery("#edit-field-partner-state-tid").change(function(e){
+										refreshCityOptions();
+									});
+								});
+
+								function refreshStateOptions() {
+									var partnerCountryField = jQuery("#edit-field-partner-country-tid").find(":selected").val();
+									var partnerStateField = jQuery("#edit-field-partner-state-tid");
+									partnerStateField.attr("disabled", "disabled");
+									partnerStateField.addClass("disabled");
+
+									var partnerCityField = jQuery("#edit-field-partner-city-tid");
+									partnerCityField.attr("disabled", "disabled");
+									partnerCityField.addClass("disabled");
+
+									var form = jQuery("#ielts-partner-search");
+									var url = "'.variable_get('partner_search_site').'json/partners";
+									jQuery.ajax({
+										url: url,
+										method: form.attr("method"),
+										data: { country:partnerCountryField },
+										dataType: "json",
+									}).done(function(data) {
+										var partnersState = {};
+										partnersState[0] = "- Any -";
+										var hasState = false;
+										var partnersCity = {};
+										partnersCity[0] = "- Any -";
+										for(x=0;x<data.length;x++){
+											if(data[x].state){
+												var hasState = true;
+												var stateIndex = data[x].state;
+												var state = data[x].state;
+												if(!partnersCheckForValue(partnersState,state) && state!=""){
+													partnersState[stateIndex] = state;
+												}
+											}
+
+											if(!hasState){
+												if(data[x].city){
+													var cityIndex = data[x].city;
+													var city = data[x].city;
+													if(!partnersCheckForValue(partnersCity,city) && city!=""){
+														partnersCity[cityIndex] = city;
+													}
+												}
+											}
+										}
+				//alert(partnersState.length);
+										if(hasState){
+											partnerStateField.empty(); // remove old options
+											jQuery.each(partnersState, function(key,value) {
+												if(key=="0"){
+													partnerStateField.append(jQuery("<option></option>").attr("value", "All").attr("selected", "selected").text(value));
+												}else{
+													partnerStateField.append(jQuery("<option></option>").attr("value", key).text(value));
+												}
+											});
+
+											partnerStateField.removeAttr("disabled");
+											partnerStateField.removeClass("disabled");
+										}else{
+											partnerCityField.empty(); // remove old options
+											jQuery.each(partnersCity, function(key,value) {
+												if(key=="0"){
+													partnerCityField.append(jQuery("<option></option>").attr("value", "All").attr("selected", "selected").text(value));
+												}else{
+													partnerCityField.append(jQuery("<option></option>").attr("value", key).text(value));
+												}
+											});
+
+											partnerCityField.removeAttr("disabled");
+											partnerCityField.removeClass("disabled");
+										}
+									});
+								}
+								function refreshCityOptions() {
+									var partnerCityField = jQuery("#edit-field-partner-city-tid");
+									partnerCityField.attr("disabled", "disabled");
+									partnerCityField.addClass("disabled");
+									var selectedCountryField = jQuery("#edit-field-partner-country-tid").find(":selected").val();
+									var selectedStateField = jQuery("#edit-field-partner-state-tid").find(":selected").val();
+									var form = jQuery("#ielts-partner-search");
+			//alert(form.attr("method"));
+									var url = "'.variable_get('partner_search_site').'json/partners";
+									jQuery.ajax({
+										url: url,
+										method: form.attr("method"),
+										data: { country:selectedCountryField,state:selectedStateField, },
+										dataType: "json",
+									}).done(function(data) {
+				//var json = JSON.parse(data);
+				//alert(data.length);
+										var partnersCity = {};
+										partnersCity[0] = "- Any -";
+										for(x=0;x<data.length;x++){
+					//alert(data[x].City);
+					//var index = x+1;
+											if(data[x].city){
+												var cityIndex = data[x].city;
+												var city = data[x].city;
+												if(!partnersCheckForValue(partnersCity,city) && city!=""){
+													partnersCity[cityIndex] = city;
+												}
+											}
+										}
+
+										partnerCityField.empty(); // remove old options
+										jQuery.each(partnersCity, function(key,value) {
+											if(key=="0"){
+												partnerCityField.append(jQuery("<option></option>").attr("value", "All").attr("selected", "selected").text(value));
+											}else{
+												partnerCityField.append(jQuery("<option></option>").attr("value", key).text(value));
+											}
+										});
+
+										partnerCityField.removeAttr("disabled");
+										partnerCityField.removeClass("disabled");
+									});
+								}
+
+								function partnersCheckForValue(json, value) {
+									for (key in json) {
+										if(json[key] === value) {
+											return true;
+										}
+									}
+									return false;
+								}
+							</script>';
+							return $output;
+						}
+
+						function ielts_partners_country_json($country){
+							$country = str_replace('-', ' ', $country);
+							/*echo $country;*/
+							$partners_query = db_select('partners', 'p');
+							$partners_query->fields('p');
+							$partners_query->condition('country', $country,'=');
+							$partners_query->orderBy('state');
+							$partners_query->orderBy('title');
+							$partners_result = $partners_query->execute();
+							$arr_state;
+							$arr_json = array();
+							//echo $country;
+/*
+							if($country =='Australia'){
+
+								$arr_state = array('stateName'=>null,'stateId'=>null,'universities'=>array());
+								$curr_state = "";
+								$count = 0;								
+								
+								while($partners_data = $partners_result->fetchAssoc()){
+
+									
+									$obj = (object) array(
+										'name'=> $partners_data['title'],'city'=> $partners_data['city'],'minBandScore'=> $partners_data['min_bandscore'] 
+										);
+
+									if($partners_data['state']!=""){
+
+										if($curr_state==$partners_data['state'] ){
+											$arr_state['universities'][] = $obj;
+										}
+										elseif (sizeof($arr_state['universities'])==0) {
+											$curr_state = $partners_data['state'];
+											$arr_state['stateName'] = $curr_state;
+											$arr_state['stateId'] = $count;
+											$arr_state['universities'][] = $obj;
+											$count++;
+										}
+										else{
+											$arr_json[] = $arr_state;
+											$arr_state = array('stateName'=>null,'stateId'=>null,'universities'=>array());
+											$curr_state = $partners_data['state'];
+											$arr_state['stateName'] = $curr_state;
+											$arr_state['stateId'] = $count;				
+											$arr_state['universities'][] = $obj;
+											$count++;
+										}										
+									//}
+									}	
+															
+								}	
+
+							}
+							else{*/
+								$arr_state = array('stateName'=>null,'universities'=>array());
+								$curr_state = "";						
+
+								while($partners_data = $partners_result->fetchAssoc()){
+									
+									$obj = (object) array(
+										'name'=> $partners_data['title'],'city'=> $partners_data['city'],'minBandScore'=> $partners_data['min_bandscore'] 
+									);
+									//echo $obj->minBandScore;
+									
+									if($obj->minBandScore =="0"){
+										$obj->minBandScore = 'Contact Institution';
+									}
+								
+									if($partners_data['state']!=""){
+
+										if($curr_state==$partners_data['state'] ){
+											$arr_state['universities'][] = $obj;
+										}
+										elseif (sizeof($arr_state['universities'])==0) {
+											$curr_state = $partners_data['state'];
+											$arr_state['stateName'] = $curr_state;
+											$arr_state['universities'][] = $obj;
+											$count++;
+										}
+										else{
+											$arr_json[] = $arr_state;
+											$arr_state = array('stateName'=>null,'stateId'=>null,'universities'=>array());
+											$curr_state = $partners_data['state'];
+											$arr_state['stateName'] = $curr_state;		
+											$arr_state['universities'][] = $obj;
+										}										
+									//}
+									}								
+		//$arr_json[] = $obj;	
+								}
+							//}
+							$arr_json[] = $arr_state;
+							header("Content-type:application/json");
+							echo json_encode($arr_json);
+						}
+
+						function ielts_partners_json(){
+
+							$partners_query = db_select('partners', 'p');
+							$partners_query->fields('p');
+							if(isset($_GET['combine']) && $_GET['combine']!=''){
+								$partners_or = db_or();
+								$partners_or->condition('title', '%'.$_GET['combine'].'%', 'LIKE');
+								$partners_or->condition('intro', '%'.$_GET['combine'].'%', 'LIKE');
+								$partners_or->condition('min_bandscore', '%'.$_GET['combine'].'%', 'LIKE');
+								$partners_or->condition('additional_info', '%'.$_GET['combine'].'%', 'LIKE');
+								$partners_query->condition($partners_or);
+							}
+							if(isset($_GET['organization_type']) && $_GET['organization_type']!='' && $_GET['organization_type']!='All'){
+								$partners_query->condition('organization_type', $_GET['organization_type'],'=');
+							}
+							if(isset($_GET['country']) && $_GET['country']!='' && $_GET['country']!='All'){
+								$partners_query->condition('country', $_GET['country'],'=');
+							}
+							if(isset($_GET['state']) && $_GET['state']!='' && $_GET['state']!='All'){
+								$partners_query->condition('state', $_GET['state'],'=');
+							}
+							if(isset($_GET['city']) && $_GET['city']!='' && $_GET['city']!='All'){
+								$partners_query->condition('city', $_GET['city'],'=');
+							}
+							if(isset($_GET['min_bandscore']) && $_GET['min_bandscore']!='' && $_GET['min_bandscore']!='All'){
+								$partners_query->condition('min_bandscore', $_GET['min_bandscore'],'=');
+							}
+
+							if(isset($_GET['sort_by']) && $_GET['sort_by']!=''){
+								if(isset($_GET['sort_order']) && $_GET['sort_order']!=''){
+									$partners_query->orderBy($_GET['sort_by'], $_GET['sort_order']);
+								}else{
+									$partners_query->orderBy($_GET['sort_by'], 'ASC');
+								}
+							}
+
+							$partners_result = $partners_query->execute();
+
+							$partners_json = array();
+							while($partners_data = $partners_result->fetchAssoc()){
+		//echo '<pre>partners_data - '.print_r($partners_data,1).'</pre>';
+		//if($partners_data['country']=='Australia')
+								$partners_json[] = $partners_data;
+
+							}
+							header("Content-type:application/json");
+							echo json_encode($partners_json);
+	//echo '1';
+	/*$type = "partner"; 
+	$nodes = node_load_multiple(array(), array('type' => $type)); 
+	echo '<pre>nodes - '.print_r($nodes,1).'</pre>';
+	echo '<pre>nodes - '.print_r(count($nodes),1).'</pre>';
+	/*foreach($nodes as $partner){
+	}*/
+	/*$query = new EntityFieldQuery();
+	$query->entityCondition('entity_type', 'node')
+	->entityCondition('bundle', 'partner');
+	if(isset($_GET['field_organization_type_tid']) && $_GET['field_organization_type_tid']!='' && $_GET['field_organization_type_tid']!='All'){
+		$query->fieldCondition('field_organization_type', 'tid', $_GET['field_organization_type_tid']);
+	}
+	if(isset($_GET['field_partner_country_tid']) && $_GET['field_partner_country_tid']!='' && $_GET['field_partner_country_tid']!='All'){
+		$query->fieldCondition('field_partner_country', 'tid', $_GET['field_partner_country_tid']);
+	}
+	if(isset($_GET['field_partner_state_tid']) && $_GET['field_partner_state_tid']!='' && $_GET['field_partner_state_tid']!='All'){
+		$query->fieldCondition('field_partner_state', 'tid', $_GET['field_partner_state_tid']);
+	}
+	if(isset($_GET['field_partner_city_tid']) && $_GET['field_partner_city_tid']!='' && $_GET['field_partner_city_tid']!='All'){
+		$query->fieldCondition('field_partner_city', 'tid', $_GET['field_partner_city_tid']);
+	}
+	if(isset($_GET['field_partner_min_bandscore_value']) && $_GET['field_partner_min_bandscore_value']!=''){
+		$query->fieldCondition('field_partner_min_bandscore', 'value', $_GET['field_partner_min_bandscore_value'],'CONTAINS');
+	}
+	if(isset($_GET['combine']) && $_GET['combine']!=''){
+		//$query->addTag('combine_statement');
+		//$query->propertyCondition('title', $_GET['combine'], 'CONTAINS');
+		//$query->fieldCondition('field_partner_min_bandscore', 'value', $_GET['combine'], 'CONTAINS');
+		//$query->fieldCondition('field_partner_intro', 'value', $_GET['combine'], 'CONTAINS');
+		//$query->fieldCondition('field_additional_information', 'value', $_GET['combine'], 'CONTAINS');
+	}
+	
+	if(isset($_GET['sort_by']) && $_GET['sort_by']!='' && isset($_GET['sort_order']) && $_GET['sort_order']!=''){
+		//if($_GET['sort_by']=='field_partner_city_tid'){
+			//$query->fieldOrderBy('field_partner_city', 'value', $_GET['sort_order']);
+		//}else{
+			$query->propertyOrderBy('title', 'value', $_GET['sort_order']);
+		//}
+	}
+
+	$result = $query->execute();
+	$nids = array_keys($result['node']);
+	$nodes = entity_load('node', $nids);
+	//echo '<pre>nids - '.print_r($result['node'],1).'</pre>';
+	//echo '<pre>nids - '.print_r($nids,1).'</pre>';
+	header("Content-type:application/json");
+	$data = array();
+	foreach($nodes as $_node){
+		//echo '<pre>_node - '.print_r($_node,1).'</pre>';
+		if($_node->field_organization_type['und']['0']['tid']){
+			$field_organization_type = taxonomy_term_load($_node->field_organization_type['und']['0']['tid']);
+			$_node->field_organization_type['und']['0']['name'] = $field_organization_type->name;
+		}
+		if($_node->field_partner_country['und']['0']['tid']){
+			$field_partner_country = taxonomy_term_load($_node->field_partner_country['und']['0']['tid']);
+			$_node->field_partner_country['und']['0']['name'] = $field_partner_country->name;
+		}
+		if($_node->field_partner_state['und']['0']['tid']){
+			$field_partner_state = taxonomy_term_load($_node->field_partner_state['und']['0']['tid']);
+			$_node->field_partner_state['und']['0']['name'] = $field_partner_state->name;
+		}
+		if($_node->field_partner_city['und']['0']['tid']){
+			$field_partner_city = taxonomy_term_load($_node->field_partner_city['und']['0']['tid']);
+			$_node->field_partner_city['und']['0']['name'] = $field_partner_city->name;
+		}
+		$data[] = $_node;
+	}
+	echo json_encode($data);*/
+	//return;
+}
+
+function ielts_partners_query_combine_statement_alter(QueryAlterableInterface $query) {
+	//$query->leftJoin('field_data_field_archive', 'a', 'node.nid = a.entity_id');
+	/*if($_GET['combine']){
+		$or = db_or()->condition('node.title', array($tid), 'CONTAINS')->isNull('node.title');
+		$query->condition($or);
+	}*/
+}
+
+function ielts_partners_search_result_page(){
+	global $base_url;
+	$url = variable_get('partner_search_site').'json/partners?combine='.urlencode($_GET['combine']).'&organization_type='.urlencode($_GET['organization_type']).'&country='.urlencode($_GET['country']).($_GET['state'] ? '&state='.urlencode($_GET['state']) : '').($_GET['city'] ? '&city='.urlencode($_GET['city']) : '').'&min_bandscore='.urlencode($_GET['min_bandscore']).'&sort_by='.urlencode($_GET['sort_by']).'&sort_order='.urlencode($_GET['sort_order']).'&items_per_page='.urlencode($_GET['items_per_page']);
+	//echo print_r($url,1);
+	//  Initiate curl
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_URL,$url);
+	$result=curl_exec($ch);
+	$partners = json_decode($result, true);
+	//$contents = file_get_contents($url);
+	
+	curl_close($ch);
+	//echo '<pre>'.print_r($partners,1).'</pre>';
+	
+	$output = '';
+	$output .= '<div class="partner-result-table-wrapper">';
+	$output .= '<div class="table-responsive">';
+	$output .= '<table id="partner-result-table" class="views-table cols-5">';
+	$output .= '<thead>';
+	$output .= '<tr>';
+	$output .= '<th class="views-field views-field-title">Organisation</th>';
+	$output .= '<th class="views-field views-field-field-organization-type">Type</th>';
+	$output .= '<th class="views-field views-field-field-partner-country">Country</th>';
+	$output .= '<th class="views-field views-field-field-partner-city">City</th>';
+	$output .= '<th class="views-field views-field-field-partner-min-bandscore">Minimum bandscore</th>';
+	$output .= '</tr>';
+	$output .= '</thead>';
+	$output .= '<tbody>';
+	if(count($partners)){
+		foreach($partners as $_partner){
+			$output .= '<tr class="odd views-row-first">';
+			$output .= '<td class="views-field views-field-title"><div class="title-wrapper"><a href="'.$base_url.'/ielts-results/'.$_partner['id'].'">'.$_partner['title'].'</a></div></td>';
+			$output .= '<td class="views-field views-field-field-organization-type">'.($_partner['organization_type'] ? $_partner['organization_type'] : '').'</td>';
+			$output .= '<td class="views-field views-field-field-partner-country">'.($_partner['country'] ? $_partner['country'] : '').'</td>';
+			$output .= '<td class="views-field views-field-field-partner-city">'.($_partner['city'] ? $_partner['city'] : '').'</td>';
+			if($_partner['min_bandscore'] == '0'){
+				$output .= '<td class="views-field views-field-field-partner-min-bandscore">Contact organisation for bandscore </td>';
+			}else{
+				$output .= '<td class="views-field views-field-field-partner-min-bandscore">'.(floor($_partner['min_bandscore']) == $_partner['min_bandscore'] ? number_format($_partner['min_bandscore'],1) : $_partner['min_bandscore']).'</td>';
+			}
+			$output .= '</tr>';
+		}
+	}else{
+		$output .= '<tr class="odd views-row-first">';
+		$output .= '<td colspan="5">No partners found</td>';
+		$output .= '</tr>';
+	}
+	$output .= '</tbody>';
+	$output .= '</table>';
+	$output .= '</div>';
+	$output .= '</div>';
+	$output .= '<div class="partner-pager-wrapper">';
+	$output .= '</div>';
+	if(count($partners)>$_GET['items_per_page']){
+		$output .= '
+		<script>
+			jQuery(document).ready(function(){
+				jQuery("#partner-result-table").DataTable({
+					"lengthMenu": ['.$_GET['items_per_page'].'],
+					"order": false,
+				});
+			});
+		</script>
+		';
+	}
+	return $output;
+}
+
+function ielts_partners_search_result_inner_page($id){
+	$partners_query = db_select('partners', 'p')
+	->fields('p')
+	->condition('id', $id,'=')
+	->execute()
+	->fetchAssoc();
+	//echo print_r($partners_query,1);
+	
+	$output = '';
+	$output .= '<div id="block-views-organization-block">';
+	$output .= '<div class="org-btn"><button onclick="goBack()" class="ielts-red-btn">Back to Search Results</button></div>';
+	$output .= '<div class="org-caption">';
+	$output .= $partners_query['organization_type'] . ($partners_query['organization_type'] ? ', '.$partners_query['city']: $partners_query['city']) . ($partners_query['city'] && $partners_query['organization_type'] ? ', '.$partners_query['country']: $partners_query['country']);
+	$output .= '</div>';
+	$output .= '<div class="org-info">';
+	$output .= '<div class="info-wrapper">';
+	$output .= '<div class="org-title">'.$partners_query['title'].'</div>';
+	$output .= '<table>';
+	$output .= '<tbody>';
+	if($partners_query['country']){
+		$output .= '<tr class="org-country">';
+		$output .= '<td>Country:</td>';
+		$output .= '<td>'.$partners_query['country'].'</td>';
+		$output .= '</tr>';
+	}
+	if($partners_query['city']){
+		$output .= '<tr class="org-city">';
+		$output .= '<td>City:</td>';
+		$output .= '<td>'.$partners_query['city'].'</td>';
+		$output .= '</tr>';
+	}
+	$output .= '</tbody>';
+	$output .= '</table>';
+	$output .= '</div>';
+	if($partners_query['website']){
+		$output .= '<div class="org-website">';
+		if (strpos($partners_query['website'],'http://') === false){
+			$output .= '<a href="http://'.$partners_query['website'].'" target="_blank">Visit website here</a>';
+		}else{
+			$output .= '<a href="'.$partners_query['website'].'" target="_blank">Visit website here</a>';
+		}
+		$output .= '</div>';
+	}
+	$output .= '</div>';
+	if($partners_query['city']){
+		$output .= '<div class="partner-intro">';
+		$output .= html_entity_decode($partners_query['intro']);
+		$output .= '</div>';
+	}
+
+	$partners_courses_query = db_select('partners_courses', 'pc')
+	->fields('pc')
+	->condition('pid', $id,'=');
+	$partners_courses_result = $partners_courses_query->execute();
+		//echo print_r(count($partners_courses_query->fetchAll()),1);
+	if(count($partners_courses_query->execute()->fetchAll())){
+		$output .= '<table class="table-course">';
+		$output .= '<thead class="org-head-wrap">';
+		$output .= '<tr class="org-head">';
+		$output .= '<th class="org-head-title">Application or course type</th>';
+		$output .= '<th class="org-head-title">Minimum IELTS Academic score</th>';
+		$output .= '<th class="org-head-title">Minimum IELTS General Training score</th>';
+		$output .= '<th class="org-head-title">Additional information</th>';
+		$output .= '</tr>';
+		$output .= '</thead>';
+		$output .= '<tbody>';
+		while($partners_courses_data = $partners_courses_result->fetchAssoc()){
+			$output .= '<tr>';
+			$output .= '<td>'.$partners_courses_data['course_type'].'</td>';
+			if($partners_courses_data['min_academice_score']=='-'){
+				$output .= '<td>'.$partners_courses_data['min_academice_score'].'</td>';
+			}else{
+				$output .= '<td>'.(floor($partners_courses_data['min_academice_score'])==$partners_courses_data['min_academice_score'] ? number_format($partners_courses_data['min_academice_score'],1) : $partners_courses_data['min_academice_score']).'</td>';
+			}
+			if($partners_courses_data['min_training_score']=='-'){
+				$output .= '<td>'.$partners_courses_data['min_training_score'].'</td>';
+			}else{
+				$output .= '<td>'.(floor($partners_courses_data['min_training_score'])==$partners_courses_data['min_training_score'] ? number_format($partners_courses_data['min_training_score'],1) : $partners_courses_data['min_training_score']).'</td>';
+			}
+			$output .= '<td>'.$partners_courses_data['additional_info'].'</td>';
+			$output .= '</tr>';
+		}
+		$output .= '</tbody>';
+		$output .= '</table>';
+	}else{
+		$output .= '<p>Contact organisation for band scores.</p>';
+	}
+	$output .= '</div>';
+	return $output;
+}
+
+function ielts_partners_search_page(){
+	global $base_url;
+	$output = '';
+	$output .= '<div class="partner-search-table-wrapper">';
+	$output .= '<div id="partners-form-advance" style="display: block;">Advanced Search</div>';
+	$output .= '<div id="partners-form-basic" style="display: none;">Basic Search</div>';
+	$output .= '<form action="'.$base_url.'/ielts-results'.'" method="get" id="ielts-partner-search" accept-charset="UTF-8">';
+	$output .= '<div class="views-exposed-widgets clearfix">';
+	$output .= '<div id="edit-combine-wrapper" class="views-exposed-widget views-widget-filter-combine">';
+	$output .= '<label for="edit-combine">Search by keyword</label>';
+	$output .= '<div class="views-widget">';
+	$output .= '<div class="form-item form-type-textfield form-item-combine">';
+	$output .= '<input class="ctools-auto-submit-exclude form-text" type="text" id="edit-combine" name="combine" value="" size="30" maxlength="128">';
+	$output .= '</div>';
+	$output .= '</div>';
+	$output .= '</div>';
+	$output .= '<div id="edit-field-organization-type-tid-wrapper" class="views-exposed-widget views-widget-filter-field_organization_type_tid">';
+	$output .= '<label for="edit-field-organization-type-tid">Organisation Type</label>';
+	$output .= '<div class="views-widget">';
+	$output .= '<div class="form-item form-type-select form-item-field-organization-type-tid">';
+	$output .= '<select class="ctools-auto-submit-exclude form-select" id="edit-field-organization-type-tid" name="organization_type">';
+	$output .= '<option value="All" selected="selected">- Any -</option>';
+	$partner_group_query = db_select('partners', 'p');
+	$partner_group_query->fields('p');
+	$partner_group_query->groupBy('organization_type');
+	$partner_group_result = $partner_group_query->execute();
+	while($partner_group_data = $partner_group_result->fetchAssoc()){
+		if($partner_group_data['organization_type']!=''){
+			$output .= '<option value="'.$partner_group_data['organization_type'].'">'.$partner_group_data['organization_type'].'</option>';
+		}
+	}
+								/*$partner_group = taxonomy_vocabulary_machine_name_load('partner_group');
+								$partner_group_list = entity_load('taxonomy_term', FALSE, array('vid' => $partner_group->vid));
+								if(count($partner_group_list)){
+									foreach($partner_group_list as $_partner_group_list){
+										$output .= '<option value="'.$_partner_group_list->tid.'">'.$_partner_group_list->name.'</option>';
+									}
+								}*/
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-country-tid-wrapper" class="views-exposed-widget views-widget-filter-field_partner_country_tid">';
+								$output .= '<label for="edit-field-partner-country-tid">Country</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-select form-item-field-partner-country-tid">';
+								$output .= '<select id="edit-field-partner-country-tid" name="country" class="form-select">';
+								$output .= '<option value="All" selected="selected">- Any -</option>';
+								$country_query = db_select('partners', 'p');
+								$country_query->fields('p');
+								$country_query->groupBy('country');
+								$country_result = $country_query->execute();
+								while($country_data = $country_result->fetchAssoc()){
+									if($country_data['country']!=''){
+										$output .= '<option value="'.$country_data['country'].'">'.$country_data['country'].'</option>';
+									}
+								}
+								/*$partner_country = taxonomy_vocabulary_machine_name_load('partner_country');
+								$partner_country_list = entity_load('taxonomy_term', FALSE, array('vid' => $partner_country->vid));
+								if(count($partner_country_list)){
+									foreach($partner_country_list as $_partner_country_list){
+										$output .= '<option value="'.$_partner_country_list->tid.'">'.$_partner_country_list->name.'</option>';
+									}
+								}*/
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-state-tid-wrapper" class="views-exposed-widget views-widget-filter-field_partner_state_tid">';
+								$output .= '<label for="edit-field-partner-state-tid">State</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-select form-item-field-partner-state-tid">';
+								$output .= '<select id="edit-field-partner-state-tid" name="state" class="form-select disabled" disabled>';
+								$output .= '<option value="All" selected="selected">- Any -</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-city-tid-wrapper" class="views-exposed-widget views-widget-filter-field_partner_city_tid">';
+								$output .= '<label for="edit-field-partner-city-tid">City</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-select form-item-field-partner-city-tid">';
+								$output .= '<select id="edit-field-partner-city-tid" name="city" class="form-select disabled" disabled>';
+								$output .= '<option value="All" selected="selected">- Any -</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div id="edit-field-partner-min-bandscore-value-wrapper" class="advance-search-block views-exposed-widget views-widget-filter-field_partner_min_bandscore_value" style="display: none;">';
+								$output .= '<label for="edit-field-partner-min-bandscore-value">Minimum bandscore</label>';
+								$output .= '<div class="views-widget">';
+								$output .= '<div class="form-item form-type-textfield form-item-field-partner-min-bandscore-value">';
+								$output .= '<input type="text" id="edit-field-partner-min-bandscore-value" name="min_bandscore" value="" size="30" maxlength="128" class="form-text ctools-auto-submit-processed">';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="advance-search-block views-exposed-widget views-widget-sort-by" style="display: none;">';
+								$output .= '<div class="form-item form-type-select form-item-sort-by">';
+								$output .= '<label for="edit-sort-by">Sort results by</label>';
+								$output .= '<select id="edit-sort-by" name="sort_by" class="form-select">';
+								$output .= '<option value="title" selected="selected">Organisation Name</option>';
+								$output .= '<option value="city">City</option>';
+								$output .= '<option value="country">Country</option>';
+								$output .= '<option value="min_bandscore">Minimum bandscore</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="advance-search-block views-exposed-widget views-widget-sort-order" style="display: none;">';
+								$output .= '<div class="form-item form-type-select form-item-sort-order">';
+								$output .= '<label for="edit-sort-order">Order </label>';
+								$output .= '<select id="edit-sort-order" name="sort_order" class="form-select">';
+								$output .= '<option value="ASC" selected="selected">Ascending</option>';
+								$output .= '<option value="DESC">Descending</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="advance-search-block views-exposed-widget views-widget-per-page" style="display: none;">';
+								$output .= '<div class="form-item form-type-select form-item-items-per-page">';
+								$output .= '<label for="edit-items-per-page">Results per page </label>';
+								$output .= '<select id="edit-items-per-page" name="items_per_page" class="form-select">';
+								$output .= '<option value="20" selected="selected">20</option>';
+								$output .= '<option value="30">30</option>';
+								$output .= '<option value="40">40</option>';
+								$output .= '<option value="50">50</option>';
+								$output .= '<option value="60">60</option>';
+								$output .= '</select>';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '<div class="views-exposed-widget views-submit-button">';
+								$output .= '<input class="form-submit" type="submit" id="submit-ielts-partner" name="" value="Search">';
+								$output .= '</div>';
+								$output .= '</div>';
+								$output .= '</form>';
+								$output .= '</div>';
+								$output .= '<script>
+								jQuery(document).ready(function(){
+			//refreshFormResults();
+									jQuery("#partners-form-advance").click(function(){
+										jQuery(this).hide();
+										jQuery("#partners-form-basic").show();
+										jQuery(".advance-search-block").show();
+									});
+									jQuery("#partners-form-basic").click(function(){
+										jQuery(this).hide();
+										jQuery("#partners-form-advance").show();
+										jQuery(".advance-search-block").hide();
+									});
+
+									jQuery("#edit-field-partner-country-tid").change(function(e){
+										refreshStateOptions();
+									});
+
+									jQuery("#edit-field-partner-state-tid").change(function(e){
+										refreshCityOptions();
+									});
+								});
+
+								function refreshStateOptions() {
+									var partnerCountryField = jQuery("#edit-field-partner-country-tid").find(":selected").val();
+									var partnerStateField = jQuery("#edit-field-partner-state-tid");
+									partnerStateField.attr("disabled", "disabled");
+									partnerStateField.addClass("disabled");
+
+									var partnerCityField = jQuery("#edit-field-partner-city-tid");
+									partnerCityField.attr("disabled", "disabled");
+									partnerCityField.addClass("disabled");
+
+									var form = jQuery("#ielts-partner-search");
+									var url = "'.variable_get('partner_search_site').'json/partners";
+									jQuery.ajax({
+										url: url,
+										method: form.attr("method"),
+										data: { country:partnerCountryField },
+										dataType: "json",
+									}).done(function(data) {
+										var partnersState = {};
+										partnersState[0] = "- Any -";
+										var hasState = false;
+										var partnersCity = {};
+										partnersCity[0] = "- Any -";
+										for(x=0;x<data.length;x++){
+											if(data[x].state){
+												var hasState = true;
+												var stateIndex = data[x].state;
+												var state = data[x].state;
+												if(!partnersCheckForValue(partnersState,state) && state!=""){
+													partnersState[stateIndex] = state;
+												}
+											}
+
+											if(!hasState){
+												if(data[x].city){
+													var cityIndex = data[x].city;
+													var city = data[x].city;
+													if(!partnersCheckForValue(partnersCity,city) && city!=""){
+														partnersCity[cityIndex] = city;
+													}
+												}
+											}
+										}
+				//alert(partnersState.length);
+										if(hasState){
+											partnerStateField.empty(); // remove old options
+											jQuery.each(partnersState, function(key,value) {
+												if(key=="0"){
+													partnerStateField.append(jQuery("<option></option>").attr("value", "All").attr("selected", "selected").text(value));
+												}else{
+													partnerStateField.append(jQuery("<option></option>").attr("value", key).text(value));
+												}
+											});
+
+											partnerStateField.removeAttr("disabled");
+											partnerStateField.removeClass("disabled");
+										}else{
+											partnerCityField.empty(); // remove old options
+											jQuery.each(partnersCity, function(key,value) {
+												if(key=="0"){
+													partnerCityField.append(jQuery("<option></option>").attr("value", "All").attr("selected", "selected").text(value));
+												}else{
+													partnerCityField.append(jQuery("<option></option>").attr("value", key).text(value));
+												}
+											});
+
+											partnerCityField.removeAttr("disabled");
+											partnerCityField.removeClass("disabled");
+										}
+									});
+								}
+								function refreshCityOptions() {
+									var partnerCityField = jQuery("#edit-field-partner-city-tid");
+									partnerCityField.attr("disabled", "disabled");
+									partnerCityField.addClass("disabled");
+									var selectedCountryField = jQuery("#edit-field-partner-country-tid").find(":selected").val();
+									var selectedStateField = jQuery("#edit-field-partner-state-tid").find(":selected").val();
+									var form = jQuery("#ielts-partner-search");
+			//alert(form.attr("method"));
+									var url = "'.variable_get('partner_search_site').'json/partners";
+									jQuery.ajax({
+										url: url,
+										method: form.attr("method"),
+										data: { country:selectedCountryField,state:selectedStateField, },
+										dataType: "json",
+									}).done(function(data) {
+				//var json = JSON.parse(data);
+				//alert(data.length);
+										var partnersCity = {};
+										partnersCity[0] = "- Any -";
+										for(x=0;x<data.length;x++){
+					//alert(data[x].City);
+					//var index = x+1;
+											if(data[x].city){
+												var cityIndex = data[x].city;
+												var city = data[x].city;
+												if(!partnersCheckForValue(partnersCity,city) && city!=""){
+													partnersCity[cityIndex] = city;
+												}
+											}
+										}
+
+										partnerCityField.empty(); // remove old options
+										jQuery.each(partnersCity, function(key,value) {
+											if(key=="0"){
+												partnerCityField.append(jQuery("<option></option>").attr("value", "All").attr("selected", "selected").text(value));
+											}else{
+												partnerCityField.append(jQuery("<option></option>").attr("value", key).text(value));
+											}
+										});
+
+										partnerCityField.removeAttr("disabled");
+										partnerCityField.removeClass("disabled");
+									});
+								}
+
+								function partnersCheckForValue(json, value) {
+									for (key in json) {
+										if(json[key] === value) {
+											return true;
+										}
+									}
+									return false;
+								}
+							</script>';
+							return $output;
+						}
+
+						function ielts_partners_clear(){
+							$partners = db_truncate('partners')->execute();
+							$partners_courses = db_truncate('partners_courses')->execute();
+							drupal_set_message(t('Successfully cleared'));
+							drupal_goto('admin/config/ielts/import-partners');
+
+						}
+
+						function ielts_partners_page(){
+						}
+
+
+						function ielts_partners_configuration($form,&$form_state){
+							global $base_url;
+							$form = array();
+							$form['partner_search_site'] = array(
+								'#type' => 'textfield', 
+								'#title' => t('Partners Base Url'), 
+								'#default_value' => (variable_get('partner_search_site') ? variable_get('partner_search_site') : ''), 
+								'#size' => 60, 
+								'#maxlength' => 128, 
+								'#required' => TRUE,
+								);
+							$form['submit'] = array(
+								'#type' => 'submit',
+								'#value' => t('Save'),
+								);
+							return $form;
+						}
+
+						function ielts_partners_configuration_submit($form,&$form_state){
+	//form_set_error('ielts_partners', '<pre>form - '.print_r($form_state['values']['partner_search_site'],1).'</pre>');
+							if($form_state['values']['partner_search_site']){
+								variable_set('partner_search_site',$form_state['values']['partner_search_site']);
+								drupal_set_message(t('Your configuration has been saved.'));
+							}
+						}
+
+
+						function ielts_partners_import($form,&$form_state){
+							global $base_url;
+							$form = array();
+							$form['file'] = array(
+								'#type' => 'file',
+								'#title' => t('CSV'),
+								'#description' => t('Upload a file, allowed extensions: csv'),
+								);
+							$form['submit'] = array(
+								'#type' => 'submit',
+								'#value' => t('Save'),
+								);
+							return $form;
+						}
+
+						function ielts_partners_import_validate(&$form, &$form_state) {    
+							$file = file_save_upload('file', array(
+			'file_validate_extensions' => array('csv'), // Validate extensions.
+			FILE_EXISTS_REPLACE
+			)
+							);
+							if($file){
+								if($file = file_move($file, 'public://')){
+									$form_state['values']['file'] = $file;
+								}
+								else {
+									form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+								}
+							}
+							else {
+								form_set_error('file', t('No file was uploaded.'));
+							}
+						}
+
+
+
+						function ielts_partners_import_submit(&$form, &$form_state){
+							$file = fopen($form_state['values']['file']->uri,"r");
+							$file_data = fgetcsv($file);
+							$data = array();
+							$partners_title_messages = array();
+							while($_data = fgetcsv($file)){
+		//drupal_set_message(print_r($_data,1));
+								$result = db_query("SELECT id FROM {partners} p WHERE p.title = :title", array(":title"=> $_data['0']));
+								$nid = $result->fetchField();
+								if($nid){
+									if($_data['1']){
+										$partners_courses_result = db_query("SELECT id FROM {partners_courses} pc WHERE pc.course_type = :course_type AND pc.pid = :pid", array(":course_type"=> $_data['1'],":pid"=> $nid));
+										$partners_courses_id = $partners_courses_result->fetchField();
+										if(!$partners_courses_id){
+											$partners_courses = db_insert('partners_courses')
+											->fields(array(
+												'pid' => $nid,
+												'course_type' => $_data['1'],
+												'min_academice_score' => ($_data['6'] ? $_data['6'] : '-'),
+												'min_training_score' => ($_data['7'] ? $_data['7'] : '-'),
+												'additional_info' => ($_data['12'] ? $_data['12'] : '-'),
+												))
+											->execute();
+											if($partners_courses){
+												$partners_title_messages[] = 'Successfully updated '.$_data['0'];
+											}
+										}
+									}
+								}else{
+									$pid = db_insert('partners')
+									->fields(array(
+										'title' => $_data['0'],
+										'course_type' => $_data['1'],
+										'organization_type' => $_data['2'],
+										'country' => $_data['3'],
+										'state' => $_data['4'],
+										'city' => $_data['5'],
+										'min_bandscore' => $_data['8'],
+										'intro' => ($_data['11'] ? htmlentities($_data['11']) : ''),
+										'website' => $_data['10'],
+										'notes' => ($_data['13'] ? htmlentities($_data['13']) : ''),
+										'additional_info' => ($_data['9'] ? htmlentities($_data['9']) : ''),
+										))
+									->execute();
+
+									if($pid){
+										$partners_title_messages[] = 'Successfully inserted '.$_data['0'];
+										if($_data['1']){
+											$partners_courses = db_insert('partners_courses')
+											->fields(array(
+												'pid' => $pid,
+												'course_type' => $_data['1'],
+												'min_academice_score' => ($_data['6'] ? $_data['6'] : '-'),
+												'min_training_score' => ($_data['7'] ? $_data['7'] : '-'),
+												'additional_info' => ($_data['12'] ? $_data['12'] : '-'),
+												))
+											->execute();
+										}
+									}
+								}
+
+		/*$result = db_query("SELECT n.nid FROM {node} n WHERE n.title = :title AND n.type = :type", array(":title"=> $_data['0'], ":type"=> 'partner'));  
+		$nid = $result->fetchField();
+		if($nid){
+			$node = node_load($nid); // load node
+			$course_type_tid = '0';
+			if($_data['1'] && $_data['1']!=''){
+				$partner_course = preg_replace('/\s+/', ' ',$_data['1']);
+				$course_type = taxonomy_get_term_by_name($partner_course,'partner_course');
+				$course_type = current($course_type);
+				if($course_type->tid){
+					$course_type_tid = $course_type->tid;
+				}else{
+					$course_type_vocab = taxonomy_vocabulary_machine_name_load('partner_course');
+					$course_type_vid = $course_type_vocab->vid;
+					$course_type_term = new stdClass();
+					$course_type_term->name = $partner_course;
+					$course_type_term->vid = $course_type_vid;
+					taxonomy_term_save($course_type_term);
+					$course_type_tid = $course_type_term->tid;
+				}
+			}
+			
+			$update = false;
+			$field_course_type = $node->field_course_type;
+			if($field_course_type['und']){
+				$add = true;
+				foreach($field_course_type['und'] as $_field_course_type){
+					if($_field_course_type['tid']==$course_type_tid){
+						$add = false;
+					}
+				}
+				if($add){
+					$indexNum = count($field_courses['und']);
+					$node->field_course_type['und'][$indexNum]['tid'] = $course_type_tid;
+					$update = true;
+				}
+			}
+		
+			$field_courses = $node->field_courses;
+			if($field_courses['und']){
+				//echo '<pre>_node - '.print_r(,1).'</pre>';
+				// add
+				$add = true;
+				foreach($field_courses['und'] as $_field_courses){
+					//echo '<pre>_field_courses - '.print_r($_field_courses,1).'</pre>';
+					if($_field_courses['field_partner_course_type']['und']['0']['tid']==$course_type_tid){
+						$add = false;
+					}
+				}
+				if($add){
+					$indexNum = count($field_courses['und']);
+					$node->field_courses['und'][$indexNum]['field_partner_course_type']['und']['0']['tid'] = $course_type_tid;
+					$node->field_courses['und'][$indexNum]['field_minimum_academic_score']['und']['0']['value'] = ($_data['6'] ? $_data['6'] : '-');
+					$node->field_courses['und'][$indexNum]['field_minimum_academic_score']['und']['0']['safe_value'] = ($_data['6'] ? $_data['6'] : '-');
+					$node->field_courses['und'][$indexNum]['field_minimum_training_score']['und']['0']['value'] = ($_data['7'] ? $_data['7'] : '-');
+					$node->field_courses['und'][$indexNum]['field_minimum_training_score']['und']['0']['safe_value'] = ($_data['7'] ? $_data['7'] : '-');
+					//$node->field_courses['und'][$indexNum]['field_additional_information']['und']['0']['value'] = $_data['9'];
+					$node->field_courses['und'][$indexNum]['field_additional_information']['und']['0']['value'] = ($_data['12'] ? $_data['12'] : '-');
+					$update = true;
+				}
+			}else{
+				// insert
+				if($course_type_tid){
+					$node->field_courses['und']['0']['field_partner_course_type']['und']['0']['tid'] = $course_type_tid;
+					$node->field_courses['und']['0']['field_minimum_academic_score']['und']['0']['value'] = ($_data['6'] ? $_data['6'] : '-');
+					$node->field_courses['und']['0']['field_minimum_academic_score']['und']['0']['safe_value'] = ($_data['6'] ? $_data['6'] : '-');
+					$node->field_courses['und']['0']['field_minimum_training_score']['und']['0']['value'] = ($_data['7'] ? $_data['7'] : '-');
+					$node->field_courses['und']['0']['field_minimum_training_score']['und']['0']['safe_value'] = ($_data['7'] ? $_data['7'] : '-');
+					//$node->field_courses['und']['0']['field_additional_information']['und']['0']['value'] = $_data['12'];
+					$node->field_courses['und']['0']['field_additional_information']['und']['0']['value'] = ($_data['12'] ? $_data['12'] : '-');
+				}
+				$update = true;
+			}
+			
+			node_save($node);
+			if($update){
+				$partners_title_messages[] = 'Successfully updated '.$node->title;
+			}
+		}else{
+			global $user;
+			$node = new StdClass();
+			$node->type = 'partner';
+			$node->title = $_data['0'];
+			$node->status = 1;
+			$node->language = 'en';
+			$node->uid = $user->uid;
+
+			// Course Type - this can have multiple values
+			if($_data['1'] && $_data['1']!=''){
+				$partner_course = preg_replace('/\s+/', ' ',$_data['1']);
+				$course_type = taxonomy_get_term_by_name($partner_course,'partner_course');
+				$course_type = current($course_type);
+				$course_type_tid = '0';
+				if($course_type->tid){
+					$course_type_tid = $course_type->tid;
+				}else{
+					$course_type_vocab = taxonomy_vocabulary_machine_name_load('partner_course');
+					$course_type_vid = $course_type_vocab->vid;
+					$course_type_term = new stdClass();
+					$course_type_term->name = $partner_course;
+					$course_type_term->vid = $course_type_vid;
+					taxonomy_term_save($course_type_term);
+					$course_type_tid = $course_type_term->tid;
+				}
+			}
+			
+			$node->field_course_type['und']['0']['tid'] = $course_type_tid;
+			
+			$organization_type = taxonomy_get_term_by_name($_data['2'],'partner_group');
+			$organization_type = current($organization_type);
+			if($organization_type_tid = $organization_type->tid){
+				$node->field_organization_type['und']['0']['tid'] = $organization_type_tid;
+			}
+			
+			$partner_country = taxonomy_get_term_by_name($_data['3'],'partner_country');
+			$partner_country = current($partner_country);
+			if($partner_country_tid = $partner_country->tid){
+				$node->field_partner_country['und']['0']['tid'] = $partner_country_tid;
+			}
+			
+			$partner_state = taxonomy_get_term_by_name($_data['4'],'partner_state');
+			$partner_state = current($partner_state);
+			if($partner_state_tid = $partner_state->tid){
+				$node->field_partner_state['und']['0']['tid'] = $partner_state_tid;
+			}
+			
+			$partner_city = taxonomy_get_term_by_name($_data['5'],'partner_city');
+			$partner_city = current($partner_city);
+			if($partner_city_tid = $partner_city->tid){
+				$node->field_partner_city['und']['0']['tid'] = $partner_city_tid;
+			}
+			$node->field_partner_min_bandscore['und']['0']['value'] = $_data['8'];
+			$node->field_website['und']['0']['value'] = $_data['10'];
+			$node->field_partner_intro['und']['0']['value'] = $_data['11'];
+			$node->field_partner_intro['und']['0']['format'] = 'full_html';
+			$node->field_additional_information['und']['0']['value'] = $_data['9'];
+			$node->field_notes_on_applying['und']['0']['value'] = $_data['13'];
+			if($course_type_tid){
+				$node->field_courses['und']['0']['field_partner_course_type']['und']['0']['tid'] = $course_type_tid;
+				$node->field_courses['und']['0']['field_minimum_academic_score']['und']['0']['value'] = ($_data['6'] ? $_data['6'] : '-');
+				$node->field_courses['und']['0']['field_minimum_academic_score']['und']['0']['safe_value'] = ($_data['6'] ? $_data['6'] : '-');
+				$node->field_courses['und']['0']['field_minimum_training_score']['und']['0']['value'] = ($_data['7'] ? $_data['7'] : '-');
+				$node->field_courses['und']['0']['field_minimum_training_score']['und']['0']['safe_value'] = ($_data['7'] ? $_data['7'] : '-');
+				$node->field_courses['und']['0']['field_additional_information']['und']['0']['value'] = ($_data['12'] ? $_data['12'] : '-');
+			}
+			node_save($node);
+			$partners_title_messages[] = 'Successfully inserted '.$node->title;
+		}
+		//$data[] = $_data;*/
+	}
+	foreach($partners_title_messages as $_partners_title_messages){
+		drupal_set_message($_partners_title_messages);
+	}
+	//form_set_error('ielts_partners', '<pre>nid - '.print_r($nid,1).'</pre>');
+	
+	
+	fclose($file);
+	
+}
