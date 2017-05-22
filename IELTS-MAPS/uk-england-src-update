@@ -1,0 +1,104 @@
+<div class="ukmap2"> 
+<div class="outer-container"> 
+  
+    <header class="page-header"> 
+        <!--<h1>Where is IELTS accepted</h1>--> 
+        <p class="description">Click on any region on the map to see the required IELTS score.</p> 
+        <p class="description chn">點擊地圖上的任何地區，即可知道該地區的院校所需的 IELTS分數。</p> 
+<div class="container"> 
+        <div class="description chn"><a class="ielts-red-btn" href="/hk/study-in-uk/required-score" style="display:block; width:200px; text-align:center; margin:0 auto;">Back to the UK map</a></div> 
+        <div class="description"><a class="ielts-red-btn" href="/hk/en/study-in-uk/required-score" style="display:block; width:200px; text-align:center; margin:0 auto;">Back to the UK map</a></div> 
+<div> 
+          
+        <p class="tips touch-screen">Tips: Drag the map to move. Pinch out the map to zoom in.</p> 
+    </header> 
+  
+    <!--<nav class="breadcrumb-navigation"> 
+        <ul> 
+            <li><a href="index.html">World</a><span class="connector">&#10095;</span></li> 
+            <li><span class="current">United States</span><span class="connector">&#10095;</span></li> 
+        </ul> 
+    </nav>-->     
+  
+<div class="wrapper" id="map-wrapper"> 
+        <!-- Map Container--> 
+        <div class="map-container" id="map-container" v-on:click="parseValue()" v-touch:tap="parseValue()"></div> 
+<p style=" color: #3c3c3c; font-weight: bold; font-size: 16px; text-align:center">ENGLAND</p>     
+        <!-- Map legend --> 
+<!--p style=" color: #3c3c3c; font-weight: bold; font-size: 16px; text-align:center">ENGLAND</p--> 
+        <div class="map-legend-container" id="legend-container"> 
+            <h4 class="legend-heading"> 
+               <p class="description chn">大學數目</p> 
+               <p class="description">Number of universities</p> 
+             </h4> 
+            <ul class="legend-list"> 
+                <li class="legend-item" v-for="legend in legendItems"> 
+                    <span class="color-box" v-bind:class="legend.color"></span> 
+                    <span class="text">{{legend.scale}}</span> 
+                </li> 
+            </ul> 
+        </div> 
+  
+        <div class="bottom-line"> 
+<p class="description">This is an indicative band score only and you should confirm the score required for 
+                the course of your choice with the recognising organisation.</p> 
+                 <p class="description chn">此為參考分數， 請與認可機構確認課程所需分數</p> 
+        </div> 
+  
+  
+        <!-- State Container--> 
+  
+        <input id="state-name-parser" type="hidden" value=""> 
+  
+        <div class="map-modal universities-list" id="universities-list-modal" v-for="state in universities" 
+             v-if="selectedStateName == state.stateName"> 
+            <header class="map-modal-header"> 
+                <h2>Universities in {{state.stateName}}</h2> 
+                <button class="close-modal button text-button" id="close-modal-btn" v-on:click="closeModal()" 
+                        v-touch:tap="closeModal()"><span class="text">Close</span></button> 
+            </header> 
+            <!-- Search --> 
+            <div class="search"> 
+                <form> 
+                    <label for="keyword" class="search">Filter by university/city/score</label> 
+                    <input type="text" value="" id="keyword" v-model = "searchText"> 
+                    <a href="#" class="clear-input" v-on:click="searchText=''" v-if="searchText!=''">&#10005;</a> 
+                </form> 
+            </div> 
+            <!-- Column header --> 
+            <div class="col-header"> 
+                <div class="uni-info"> 
+                    <span class="uni-name">Name</span> 
+                     <div class="description"><span class="required-ielts-band">IELTS minimum bandscore</span></div> 
+                    <div class="description chn"><span class="required-ielts-band">IELTS minimum bandscore</span></span></div> 
+                </div> 
+            </div> 
+            <div class="map-modal-content"> 
+                <ul> 
+  
+                    <li v-for="university in state.universities | filterBy searchText" class="university-item"> 
+                        <div class="uni-info"> 
+                            <span class="uni-name">{{university.name}}</span> 
+                            <span class="required-ielts-band">{{university.minBandScore}}</span> 
+                        </div> 
+                    </li> 
+                </ul> 
+            </div> 
+  
+            <div class="bottom-line"> 
+<p style=" color: #3c3c3c; font-weight: bold; font-size: 16px; text-align:center">ENGLAND<p> 
+<p class="description">This is an indicative band score only and you should confirm the score required for 
+                the course of your choice with the recognising organisation.</p> 
+                 <p class="description chn">此為參考分數， 請與認可機構確認課程所需分數</p> 
+            </div> 
+        </div> 
+    </div> 
+    <!-- END wrapper --> 
+</div> 
+</div> 
+</div> 
+  
+  
+<script src="/ielts/<?php echo drupal_get_path('theme',$GLOBALS['theme']); ?>/js/ukmaps/js/views/global-view.js"></script> 
+<script src="/ielts/<?php echo drupal_get_path('theme',$GLOBALS['theme']); ?>/js/ukmaps/js/views/uk-england-universities.js"></script> 
+<script src="/ielts/<?php echo drupal_get_path('theme',$GLOBALS['theme']); ?>/js/ukmaps/js/views/uk-england-map.js"></script> 
