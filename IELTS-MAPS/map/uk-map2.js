@@ -88,7 +88,7 @@
             // North Ireland
             "NIR": {
                 "fillKey": "c0",
-                "state":"North Ireland",
+                "state":"N. Ireland",
                 "numberOfUniversities": 0
             }
         },
@@ -103,7 +103,7 @@
                     window.location = "required-score2";
                 }*/
                 if(geography.properties['name']=="England"){
-                    window.location.href = 'http://mysite.com/ielts/hk/en/study-in-uk/required-score2'
+                    window.location = 'required-score2'
                 }
                 else{
                     if (geography.properties.name != null) {
@@ -138,7 +138,7 @@
     window.addEventListener('resize', function () {
         ukMap.resize();
     });
-
+/*
     window.addEventListener('load',function(){
         updateDatamapColor();
         console.log("finished loading");
@@ -187,7 +187,7 @@
             return "#FFCBFD";
         }
 
-    }
+    }*/
 
 })();
 /*

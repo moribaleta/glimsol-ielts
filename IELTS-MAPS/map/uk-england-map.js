@@ -11,17 +11,17 @@
 // Map for the United Kingdom
 (function () {
     var stateNameParser = document.getElementById('state-name-parser');
-    // Load the uk map
-    var ukMap = new Datamap({
+    // Load the England map
+    var englandMap = new Datamap({
         element: document.getElementById('map-container'),
-        scope: 'subunits',
+        scope: 'eer',
         setProjection: function (element, options) {
             var projection = d3.geo.albers()
             .center([0, 55.4])
             .rotate([4.4, 0])
             .parallels([50, 60])
-            .scale(2600)
-            .translate([element.offsetWidth / 2, element.offsetHeight / 2]);
+            .scale(4000)
+            .translate([element.offsetWidth / 2 - 100, 40]);
 
             var path = d3.geo.path()
             .projection(projection);
@@ -30,16 +30,18 @@
         },
         responsive: true,
         geographyConfig: {
-            dataUrl: '/ielts/maps/uk.england.topo.json',
+            dataUrl: 'http://mysite.com/ielts/maps/uk.england.topo.json',
             highlightFillColor: 'rgb(227, 24, 55)',
             popupTemplate: function (geography, data) {
+                /*return '<div class="hoverinfo">' + geography.properties.name +
+                ', Number of Universities: ' + data.numberOfUniversities + ' '*/
                 var value = geography.properties.name;
                 var output = 0;
                 for(var i=0; i<states.length;i++){
                     var elem = states[i];
                     elem = elem.split(",");
                     if(elem[0]==value){
-
+                        
                         output = elem[1];
                     }
                 }            
@@ -63,57 +65,48 @@
             // TODO: update universities data and fillKey for each region
             // South West
             "SW": {
-                "fillKey": "c0",
-                "state":"South West",
-                "numberOfUniversities": 709
+                "fillKey": "c3",
+                "numberOfUniversities": 0
             },
             // South East
             "SE": {
-                "fillKey": "c0",
-                "state":"South East",
-                "numberOfUniversities": 59
+                "fillKey": "c5",
+                "numberOfUniversities": 0
             },
             // London
             "LD": {
-                "fillKey": "c0",
-                "state":"London",
-                "numberOfUniversities": 34
+                "fillKey": "c7",
+                "numberOfUniversities": 0
             },
             // Eastern
             "ETN": {
-                "fillKey": "c0",
-                "state":"Eastern",
-                "numberOfUniversities": 3
+                "fillKey": "c3",
+                "numberOfUniversities": 0
             },
             // West Midlands
             "WM": {
-                "fillKey": "c0",
-                "state":"West Midlands",
-                "numberOfUniversities": 3
+                "fillKey": "c3",
+                "numberOfUniversities": 0
             },
             // East Midlands
             "EM": {
-                "fillKey": "c0",
-                "state":"East Midlands",
-                "numberOfUniversities": 3
+                "fillKey": "c2",
+                "numberOfUniversities": 0
             },
             // Yorkshire and The Humber
             "YTH": {
-                "fillKey": "c0",
-                "state":"Yorkshire and The Humber",
-                "numberOfUniversities": 3
+                "fillKey": "c2",
+                "numberOfUniversities": 0
             },
             // North West
             "NW": {
-                "fillKey": "c0",
-                "state":"North West",
-                "numberOfUniversities": 3
+                "fillKey": "c3",
+                "numberOfUniversities": 0
             },
             // North East
             "NE": {
-                "fillKey": "c0",
-                "state":"North East",
-                "numberOfUniversities": 3
+                "fillKey": "c1",
+                "numberOfUniversities": 0
             }
         },
 
@@ -121,26 +114,15 @@
         done: function (datamap) {
             datamap.svg.selectAll('.datamaps-subunit').on('click', function (geography) {
                 // Pass the selected state name to state-name-parser input
-                /*if (geography.properties.name != null && geography.properties.name != 'England') {
-                    stateNameParser.value = geography.properties.name;
-                } else if(geography.properties.name === 'England'){
-                    window.location = "required-score2";
-                }*/
                 if (geography.properties.name != null) {
-                    stateNameParser.value = geography.properties['name'];
+                    stateNameParser.value = geography.properties.name;
                 }
-                console.log(stateNameParser.value + ": " + geography.properties['name']);
+                console.log(geography.properties.name);
             });
-            
             datamap.svg.selectAll('.datamaps-subunit').on('touchstart', function (geography) {
                 // Pass the selected state name to state-name-parser input
-                /*if (geography.properties.name != null && geography.properties.name != 'England') {
-                    stateNameParser.value = geography.properties.name;
-                } else if(geography.properties.name === 'England'){
-                    window.location = "uk-england.html";
-                }*/
                 if (geography.properties.name != null) {
-                    stateNameParser.value = geography.properties['name'];
+                    stateNameParser.value = geography.properties.name;
                 }
 
             });
@@ -149,57 +131,7 @@
 
     // Responsive Map
     window.addEventListener('resize', function () {
-        ukMap.resize();
+        englandMap.resize();
     });
-
-    window.addEventListener('load',function(){
-        updateDatamapColor();
-        console.log("finished loading");
-    });
-
-    function updateDatamapColor(){
-        var stateUnits = document.getElementsByClassName('datamaps-subunit');
-        for(var i = 0; i<stateUnits.length; i++){
-            var data_info = stateUnits[i].getAttribute("data-info");
-            console.log('datamap: '+data_info);
-            data_info = data_info.split(",");
-            var stateName = data_info[1].split(":");
-            stateUnits[i].style.fill = getColorState(stateName[1]);
-        }
-    }
-
-    function getColorState(stateName){
-        stateName = stateName.slice(1,stateName.length-1);
-        for(var i = 0; i<states.length; i++){
-            var data = states[i].split(",");
-            //console.log("changing "+stateName+" to "+data[0]);
-            if(stateName == data[0]){
-                var color = getColor(data[1]);
-                console.log("changing "+stateName+" to "+color+" by "+data[1]);
-                return color;
-            }
-        }
-    }
-
-    function getColor(size){
-        if(size==0){
-            return "rgba(225,225, 225, 1)";
-        }else if(size>=1&&size<=20){
-            return "#8DD15A";
-        }else if(size>=21&&size<=50){
-            return "#AD70D1";
-        }else if(size>=51&&size<=75){
-            return "#FC9651";
-        }else if(size>=76&&size<=100){
-            return "#8AB3E0";
-        }else if(size>=101&&size<=150){
-            return "#FF001E";
-        }else if(size>=151&&size<=200){
-            return "#248699";
-        }else{
-            return "#FFCBFD";
-        }
-
-    }
 
 })();
