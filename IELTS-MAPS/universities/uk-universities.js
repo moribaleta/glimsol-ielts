@@ -3,7 +3,7 @@
  */
 
 // Load universities data in the United States
-var dataURL = 'http://mysite.com/ielts/data/uk-universities.json';
+var dataURL = '/ielts/data/uk-universities.json';
 //var dataURL = 'http://mysite.com/ielts/partner-search/ielts-results/';
 
 var universities = new Vue({

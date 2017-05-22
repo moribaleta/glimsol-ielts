@@ -122,9 +122,7 @@
                 if (geography.propertid != null) {
                     stateNameParser.value = geography.id;
                 }
-            });        
-            console.log("Object %o",datamap);
-
+            });   
 
 
 
@@ -136,7 +134,7 @@
         australiaMap.resize()
     });
 
-     window.addEventListener('load',function(){
+    /* window.addEventListener('load',function(){
         updateDatamapColor();
         console.log("finished loading");
     });
@@ -184,7 +182,7 @@
             return "#FFCBFD";
         }
 
-    }
+    }*/
     
 })();
 

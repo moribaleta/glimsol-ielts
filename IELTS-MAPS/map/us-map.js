@@ -320,7 +320,7 @@
         usa.resize();
     });
 
-     window.addEventListener('load',function(){
+     /*window.addEventListener('load',function(){
         updateDatamapColor();
         console.log("finished loading");
     });
@@ -369,7 +369,7 @@
         }
 
     }
-
+*/
 
 
     // // check for touch

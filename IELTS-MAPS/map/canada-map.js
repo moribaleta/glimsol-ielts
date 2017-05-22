@@ -150,7 +150,7 @@
         canadaMap.resize();
     });
 
-    window.addEventListener('load',function(){
+    /*window.addEventListener('load',function(){
         updateDatamapColor();
         console.log("finished loading");
     });
@@ -198,7 +198,7 @@
             return "#FFCBFD";
         }
 
-    }
+    }*/
 
 })();
 
