@@ -28,7 +28,9 @@ var universities = new Vue({
                     console.log("adding states: "+arr_json[key]['stateName']+",size: " +arr_json[key]['universities'].length);
                 }
                 updateDatamapColor();
-            }, function (response) {
+            }, function (response) { 
+                console.log('fetchdata() fail');
+                fetchData();
                 // Failed
             });
         },

@@ -27,6 +27,8 @@ var universities = new Vue({
                 }
                 updateDatamapColor();
             }, function (response) {
+                console.log('fetchdata() fail');
+                fetchData();
                 // Failed
             });
         },

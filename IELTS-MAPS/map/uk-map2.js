@@ -103,7 +103,7 @@
                     window.location = "required-score2";
                 }*/
                 if(geography.properties['name']=="England"){
-                    window.location = 'required-score2'
+                    window.location = ' required-score2'
                 }
                 else{
                     if (geography.properties.name != null) {

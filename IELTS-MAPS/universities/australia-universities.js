@@ -30,6 +30,8 @@ var universities = new Vue({
                 updateDatamapColor();
             }, function (response) {
                 // Failed
+                console.log('fetchdata() fail');
+                fetchData();
             });
             //console.log("map: "+dataURL);
         },
